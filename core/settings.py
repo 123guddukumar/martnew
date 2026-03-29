@@ -16,7 +16,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-0$*k1g)som4&yf1npuu9=w4ps-cnf4n@kjbu4e=des*rm^v039')
 DEBUG = env('DEBUG', default=False)
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'freshmart-o6g5.onrender.com'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'freshmart-vk3k.onrender.com'])
 
 # Application definition
 INSTALLED_APPS = [
