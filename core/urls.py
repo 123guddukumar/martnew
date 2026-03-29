@@ -13,6 +13,9 @@ urlpatterns = [
     path('api/products/', include('products.urls')),
     path('api/orders/', include('orders.urls')),
     path('api/whatsapp/', include('whatsapp.urls')),
+
+    # Direct webhook alias (as requested by user configuration)
+    path('webhook/', include('whatsapp.urls')),
 ]
 
 # Serve media files in development

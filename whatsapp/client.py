@@ -37,6 +37,10 @@ class WhatsAppClient:
             logger.error(f"WhatsApp API network error: {e}")
             raise
 
+    def _clean_phone(self, phone: str) -> str:
+        """Strip + and spaces from phone number for Meta API."""
+        return phone.replace('+', '').replace(' ', '').strip()
+
     def send_text(self, to: str, message: str) -> dict:
         """
         Send a plain text message.
@@ -46,7 +50,7 @@ class WhatsAppClient:
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": to,
+            "to": self._clean_phone(to),
             "type": "text",
             "text": {
                 "preview_url": False,
@@ -71,7 +75,7 @@ class WhatsAppClient:
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": to,
+            "to": self._clean_phone(to),
             "type": "interactive",
             "interactive": {
                 "type": "button",
@@ -89,7 +93,7 @@ class WhatsAppClient:
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": to,
+            "to": self._clean_phone(to),
             "type": "interactive",
             "interactive": {
                 "type": "list",
