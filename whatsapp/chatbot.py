@@ -42,11 +42,15 @@ class ChatbotStateMachine:
         logger.info(f"[{phone}] Step={user_state.current_step} | Message={text[:50]}")
 
         # Check for order confirmation from website (e.g. "Order #123")
-        match = re.search(r'order\s*#?(\d+)', text, re.IGNORECASE)
+        # Added extra robustness to regex to match variations
+        match = re.search(r'order\s*(?:#|no\.?)?\s*(\d+)', text, re.IGNORECASE)
         if match:
             order_id = int(match.group(1))
+            logger.info(f"[{phone}] Detected Order #{order_id} in message")
             if self._handle_initial_confirmation(phone, order_id):
                 return
+            else:
+                logger.warning(f"[{phone}] Failed initial confirmation for Order #{order_id}")
 
         # Route to correct handler based on current step
         if user_state.current_step == 'awaiting_name':
@@ -121,10 +125,11 @@ class ChatbotStateMachine:
             summary = order.get_order_summary_text()
             msg = (
                 f"👋 *Welcome to FreshMart!*\n\n"
-                f"We received your request for:\n{summary}\n\n"
-                "To complete your order, please reply with your *FULL NAME* 👇"
+                f"We received your request for Order #{order_id}:\n{summary}\n\n"
+                "To finalize everything, please reply with your *FULL NAME* 👇"
             )
             whatsapp_client.send_text(phone, msg)
+            logger.info(f"[{phone}] Successfully linked to Order #{order_id} and sent greeting.")
             return True
             
         except Order.DoesNotExist:
