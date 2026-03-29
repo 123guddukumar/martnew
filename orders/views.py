@@ -52,16 +52,20 @@ class CreateOrderView(APIView):
                 # Calculate total
                 order.calculate_total()
 
-                # Initialize or update user chatbot state
-                user_state, _ = UserState.objects.get_or_create(phone_number=phone)
-                user_state.current_order = order
-                user_state.current_step = 'awaiting_name'
-                user_state.save()
+                # If the phone is 'PENDING', we wait for the user to message us from WhatsApp
+                # to confirm the order. The chatbot will then update the phone number and state.
+                if phone.upper() != 'PENDING':
+                    # Initialize or update user chatbot state
+                    user_state, _ = UserState.objects.get_or_create(phone_number=phone)
+                    user_state.current_order = order
+                    user_state.current_step = 'awaiting_name'
+                    user_state.save()
 
-                # Trigger async WhatsApp message
-                send_order_summary_to_customer.delay(order.id)
-
-                logger.info(f"Order #{order.id} created for {phone}")
+                    # Trigger async WhatsApp message
+                    send_order_summary_to_customer.delay(order.id)
+                    logger.info(f"Order #{order.id} created for {phone}")
+                else:
+                    logger.info(f"Order #{order.id} created with PENDING phone (waiting for WhatsApp message)")
                 return Response(
                     {'order_id': order.id, 'message': 'Order placed! Check WhatsApp for confirmation.'},
                     status=status.HTTP_201_CREATED

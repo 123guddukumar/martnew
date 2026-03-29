@@ -18,6 +18,10 @@ class OrderCreateSerializer(serializers.Serializer):
     items = OrderItemInputSerializer(many=True, min_length=1)
 
     def validate_phone(self, value):
+        # Allow 'PENDING' for the new simplified web flow
+        if value.upper() == 'PENDING':
+            return 'PENDING'
+            
         # Normalize phone: strip spaces, ensure starts with +
         value = value.strip().replace(' ', '')
         if not value.startswith('+'):

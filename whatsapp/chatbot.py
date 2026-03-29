@@ -7,6 +7,7 @@ Handles the full conversation flow:
 Also handles the "menu" flow when user sends free text mid-session.
 """
 import logging
+import re
 from django.conf import settings
 from orders.models import Order, UserState
 from .client import whatsapp_client
@@ -39,6 +40,13 @@ class ChatbotStateMachine:
         text = message_text.strip()
 
         logger.info(f"[{phone}] Step={user_state.current_step} | Message={text[:50]}")
+
+        # Check for order confirmation from website (e.g. "Order #123")
+        match = re.search(r'order\s*#?(\d+)', text, re.IGNORECASE)
+        if match:
+            order_id = int(match.group(1))
+            if self._handle_initial_confirmation(phone, order_id):
+                return
 
         # Route to correct handler based on current step
         if user_state.current_step == 'awaiting_name':
@@ -90,6 +98,38 @@ class ChatbotStateMachine:
     # ─────────────────────────────────────────────────
     # State handlers
     # ─────────────────────────────────────────────────
+
+    def _handle_initial_confirmation(self, phone: str, order_id: int) -> bool:
+        """
+        Handle the first message from a user who just clicked "Confirm order" on web.
+        Updates the order with their real phone number and starts the collection flow.
+        """
+        try:
+            order = Order.objects.get(id=order_id)
+            
+            # Update order with the sender's real phone
+            order.customer_phone = phone
+            order.save(update_fields=['customer_phone'])
+
+            # Set user state
+            user_state, _ = UserState.objects.get_or_create(phone_number=phone)
+            user_state.current_order = order
+            user_state.current_step = 'awaiting_name'
+            user_state.save()
+
+            # Greeting + ask for name
+            summary = order.get_order_summary_text()
+            msg = (
+                f"👋 *Welcome to FreshMart!*\n\n"
+                f"We received your request for:\n{summary}\n\n"
+                "To complete your order, please reply with your *FULL NAME* 👇"
+            )
+            whatsapp_client.send_text(phone, msg)
+            return True
+            
+        except Order.DoesNotExist:
+            logger.warning(f"Order #{order_id} not found for phone {phone}")
+            return False
 
     def _handle_name(self, user_state: UserState, text: str):
         """Step 1: Collect customer name."""
